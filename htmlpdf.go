@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,7 @@ import (
 // chrome startup args
 var args = []string{
 	"--headless",
+	"--no-sandbox",
 	"--disable-background-networking",
 	"--disable-extensions",
 	"--safebrowsing-disable-auto-update",
@@ -67,6 +69,15 @@ func (pdf *PDF) Create(html []byte) (*os.File, error) {
 
 	// Create pdf from html contents
 	args := append(args, fmt.Sprintf("--print-to-pdf=%s", tmpPdf.Name()), fmt.Sprintf("file://%s", tmpfile.Name()))
+
+	u, err := user.Current()
+	if err != nil {
+		fmt.Println("error getting user:", err)
+	} else {
+		fmt.Printf("user: %+v\n", u)
+	}
+
+	fmt.Println("exec command", pdf.chromePath, strings.Join(args, " "))
 	cmd := exec.Command(pdf.chromePath, args...)
 
 	// watch for errors so we can kill the process if need be
@@ -77,7 +88,11 @@ func (pdf *PDF) Create(html []byte) (*os.File, error) {
 	go func() {
 		if err := seb.run(); err != nil {
 			fmt.Println("Stderr:", seb.buf.String())
-			cmd.Process.Kill()
+			if cmd.Process != nil {
+				cmd.Process.Kill()
+			} else {
+				fmt.Println("stderr: process is nil")
+			}
 		}
 	}()
 	sob, err := newSyncbuf(cmd.StdoutPipe())
@@ -87,7 +102,11 @@ func (pdf *PDF) Create(html []byte) (*os.File, error) {
 	go func() {
 		if err := sob.run(); err != nil {
 			fmt.Println("Stdout:", seb.buf.String())
-			cmd.Process.Kill()
+			if cmd.Process != nil {
+				cmd.Process.Kill()
+			} else {
+				fmt.Println("stdout: process is nil")
+			}
 		}
 	}()
 

@@ -10,7 +10,7 @@ import (
 
 func main() {
 	html := []byte(`<h1>Hello, World!</h1>`)
-	htmlpdf.Init(`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`)
+	htmlpdf.Init("google-chrome")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		err := htmlpdf.ServePDF(w, "test.pdf", html)
