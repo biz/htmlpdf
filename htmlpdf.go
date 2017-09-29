@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"os/user"
 	"strings"
 	"sync"
 	"time"
@@ -70,14 +68,7 @@ func (pdf *PDF) Create(html []byte) (*os.File, error) {
 	// Create pdf from html contents
 	args := append(args, fmt.Sprintf("--print-to-pdf=%s", tmpPdf.Name()), fmt.Sprintf("file://%s", tmpfile.Name()))
 
-	u, err := user.Current()
-	if err != nil {
-		fmt.Println("error getting user:", err)
-	} else {
-		fmt.Printf("user: %+v\n", u)
-	}
-
-	fmt.Println("exec command", pdf.chromePath, strings.Join(args, " "))
+	//fmt.Println("exec command", pdf.chromePath, strings.Join(args, " "))
 	cmd := exec.Command(pdf.chromePath, args...)
 
 	// watch for errors so we can kill the process if need be
@@ -87,7 +78,7 @@ func (pdf *PDF) Create(html []byte) (*os.File, error) {
 	}
 	go func() {
 		if err := seb.run(); err != nil {
-			fmt.Println("Stderr:", seb.buf.String())
+			//	fmt.Println("Stderr:", seb.buf.String())
 			if cmd.Process != nil {
 				cmd.Process.Kill()
 			} else {
@@ -142,13 +133,15 @@ func (pdf PDF) Serve(w http.ResponseWriter, filename string, html []byte) error 
 }
 
 // Serve is a helper function that sets the correct http headers to serve a pdf to a browser
-func Serve(w http.ResponseWriter, filename string, pdfBody io.ReadCloser) {
+func Serve(w http.ResponseWriter, filename string, pdfBody io.ReadCloser) error {
+	defer pdfBody.Close()
 	w.Header().Set("Content-Type", "applicaiton/pdf")
 	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 	_, err := io.Copy(w, pdfBody)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 // syncbuf was created because of an exec bug that causes the exec to hang

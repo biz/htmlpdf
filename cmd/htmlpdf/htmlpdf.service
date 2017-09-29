@@ -1,0 +1,11 @@
+[Unit]
+Description=htmlpdf Is uses headless Chrome to create PDF's from HTML
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/htmlpdf
+WatchdogSec=30s
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
